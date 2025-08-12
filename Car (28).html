@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>F1 Car with Sliders (fixed rear wing)</title>
+<style>
+  body { font-family: sans-serif; padding:16px; }
+  svg { display:block; margin:0 auto 16px; border: 1px solid #ddd; max-width:100%; height:auto; }
+  .slider-container { max-width:420px; margin:0 auto; }
+  label { display:block; margin:10px 0; }
+</style>
+</head>
+<body>
+
+<h1 style="text-align:center">Interactive F1 Car — Wing fixed, BP moves</h1>
+
+<svg id="f1car" width="800" height="400" viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main Body -->
+  <rect id="mainBody" x="130" y="90" width="240" height="20" fill="none" stroke="green" stroke-width="3"/>
+
+  <!-- Sidepod -->
+  <path id="sidepod" d="M200,133 L200,105 Q250,100 300,98 L300,133 L200,133 Z" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Wheels -->
+  <circle id="frontWheel" cx="160" cy="118" r="25" fill="white" stroke="black" stroke-width="4"/>
+  <circle id="rearWheel" cx="340" cy="118" r="25" fill="white" stroke="black" stroke-width="4"/>
+
+  <!-- Nosecone -->
+  <path id="nosecone" d="M130,110 H60 Q95,90 130,90" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Helmet + Halo Group -->
+  <g id="haloGroup">
+    <!-- Helmet Base -->
+    <path d="M247,89 V75 M261,75 V89" fill="none" stroke="black" stroke-width="2"/>
+    <!-- Helmet Dome -->
+    <path d="M247,75 A7,7 0 0 1 261,75" fill="none" stroke="black" stroke-width="2"/>
+    <!-- Helmet Inner Rectangle -->
+    <rect x="247" y="75" width="6" height="5" fill="black"/>
+    <!-- Halo Arcs -->
+    <path id="haloArc1" d="M230,70 Q255,50 280,85" fill="none" stroke="black" stroke-width="2"/>
+    <path id="haloArc2" d="M230,75 Q255,55 280,90" fill="none" stroke="black" stroke-width="2"/>
+    <!-- Circle Connecting Arcs -->
+    <circle cx="230" cy="72.5" r="2.5" fill="black"/>
+    <!-- Triangle Support -->
+    <path d="M226,90 L234,90 L230,75 Z" fill="none" stroke="black" stroke-width="2"/>
+  </g>
+
+  <!-- Dynamic Convex Curve from Halo to Canister back line (fixed) -->
+  <path id="haloToWingCurve" d="M280,82 Q325,62 370,60" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Canister Chamber Back Line (FIXED) -->
+  <line id="canisterBackLine" x1="370" y1="90" x2="370" y2="60" stroke="black" stroke-width="2"/>
+
+  <!-- Rear Wing Left Half Circle (fixed in place) -->
+  <path id="rearWingCircle" d="M345,61.25 A6.25,6.25 0 0 1 345,48.75" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Rear Wing Convex Curves (left vertices attached to the circle) -->
+  <path id="rearWingTop" d="M345,48.75 Q356,49 367,57" fill="none" stroke="black" stroke-width="2"/>
+  <path id="rearWingBottom" d="M345,61.25 Q356,60.25 367,57" fill="none" stroke="black" stroke-width="2"/>
+</svg>
+
+<div class="slider-container">
+  <label>Sidepod Length:
+    <input type="range" id="sidepodSlider" min="250" max="312" value="300">
+  </label>
+
+  <label>Halo Position:
+    <input type="range" id="haloSlider" min="200" max="300" value="280">
+  </label>
+
+  <label>Nosecone Length:
+    <input type="range" id="noseconeSlider" min="40" max="120" value="70">
+  </label>
+
+  <label>Wheel Diameter:
+    <input type="range" id="wheelSlider" min="20" max="60" value="50">
+  </label>
+
+  <label>Rear Wing meeting point (BP X):
+    <!-- THIS moves the wing meeting point only, NOT the canister back line -->
+    <input type="range" id="rearWingSlider" min="360" max="420" value="367">
+  </label>
+</div>
+
+<script>
+/* elements */
+const sidepod = document.getElementById('sidepod');
+const haloGroup = document.getElementById('haloGroup');
+const haloToWingCurve = document.getElementById('haloToWingCurve');
+const nosecone = document.getElementById('nosecone');
+const frontWheel = document.getElementById('frontWheel');
+const rearWheel = document.getElementById('rearWheel');
+
+const rearWingCircle = document.getElementById('rearWingCircle');
+const rearWingTop = document.getElementById('rearWingTop');
+const rearWingBottom = document.getElementById('rearWingBottom');
+const canisterBackLine = document.getElementById('canisterBackLine');
+
+const sidepodSlider = document.getElementById('sidepodSlider');
+const haloSlider = document.getElementById('haloSlider');
+const noseconeSlider = document.getElementById('noseconeSlider');
+const wheelSlider = document.getElementById('wheelSlider');
+const rearWingSlider = document.getElementById('rearWingSlider');
+
+/* constants for wing left vertices (locked to circle) */
+const leftTopX = 345;       // left top vertex attached to circle
+const leftTopY = 48.75;
+const leftBottomX = 345;    // left bottom vertex attached to circle
+const leftBottomY = 61.25;
+
+/* fixed canister back line X (unchanged) */
+const canisterBackX = 370;
+
+/* minimum gap so sidepod does not run into rear wheel */
+const rearWheelX = 340;
+const rearWheelR = 25;
+const minSidepodEndX = rearWheelX - rearWheelR - 3; // 3px gap
+
+/* -- utility to update wing curves given meeting point (bpX) -- */
+function updateRearWingCurves(bpX) {
+  // meeting Y (where the two curves meet) — keeps the same vertical position
+  const meetingY = 57; // chosen to match prior design
+
+  // Control points - simple scheme: controlX = midpoint, controlY nudged to keep convex shape
+  const controlXTop = (leftTopX + bpX) / 2;
+  const controlYTop = leftTopY + (meetingY - leftTopY) * 0.40; // a bit down from left top to keep convex
+
+  const controlXBottom = (leftBottomX + bpX) / 2;
+  const controlYBottom = leftBottomY - (leftBottomY - meetingY) * 0.40; // a bit up from left bottom
+
+  // top curve: left top -> quadratic control -> bp
+  rearWingTop.setAttribute('d', `M${leftTopX},${leftTopY} Q${controlXTop},${controlYTop} ${bpX},${meetingY}`);
+
+  // bottom curve: left bottom -> quadratic control -> bp
+  rearWingBottom.setAttribute('d', `M${leftBottomX},${leftBottomY} Q${controlXBottom},${controlYBottom} ${bpX},${meetingY}`);
+}
+
+/* initialize with default BP (matches original visuals) */
+updateRearWingCurves(parseFloat(rearWingSlider.value));
+
+/* --- sidepod control (unchanged behaviour) --- */
+sidepodSlider.addEventListener('input', () => {
+  let endX = parseFloat(sidepodSlider.value);
+  if (endX > minSidepodEndX) endX = minSidepodEndX;
+  const pathData = `M200,133 L200,105 Q250,100 ${endX},98 L${endX},133 L200,133 Z`;
+  sidepod.setAttribute('d', pathData);
+});
+
+/* --- halo control (keeps halo -> canister curve pointing to fixed canister back line) --- */
+haloSlider.addEventListener('input', () => {
+  const haloX = parseFloat(haloSlider.value);
+  const deltaX = haloX - 280;
+  haloGroup.setAttribute('transform', `translate(${deltaX},0)`);
+
+  // Halo-to-canister curve always targets the fixed canister back line X
+  const curveStartX = haloX;
+  const curveStartY = 82;
+  haloToWingCurve.setAttribute('d', `M${curveStartX},${curveStartY} Q${(curveStartX+canisterBackX)/2},62 ${canisterBackX},60`);
+});
+
+/* --- nosecone control (unchanged behaviour) --- */
+noseconeSlider.addEventListener('input', () => {
+  const length = parseFloat(noseconeSlider.value);
+  const startX = 130;
+  const startYTop = 90;
+  const startYBottom = 110;
+  const tipX = startX - length;
+  nosecone.setAttribute('d', `M${startX},${startYBottom} H${tipX} Q${tipX + length/2},${startYTop} ${startX},${startYTop}`);
+});
+
+/* --- wheel diameter control (unchanged behaviour) --- */
+wheelSlider.addEventListener('input', () => {
+  const diameter = parseFloat(wheelSlider.value);
+  const radius = diameter / 2;
+  frontWheel.setAttribute('r', radius);
+  rearWheel.setAttribute('r', radius);
+});
+
+/* --- rear wing meeting point slider: only move BP, do NOT move canister back line --- */
+rearWingSlider.addEventListener('input', () => {
+  const bpX = parseFloat(rearWingSlider.value);
+
+  // Update wing curves only (left vertices remain attached to circle)
+  updateRearWingCurves(bpX);
+
+  // Note: canisterBackLine stays fixed at canisterBackX
+  // haloToWingCurve is left unchanged (it still points to the fixed canister line)
+});
+
+/* Keep initial halo->fixed-canister curve synced to default halo position */
+(function init() {
+  const haloX = parseFloat(haloSlider.value);
+  const deltaX = haloX - 280;
+  haloGroup.setAttribute('transform', `translate(${deltaX},0)`);
+  haloToWingCurve.setAttribute('d', `M${haloX},82 Q${(haloX+canisterBackX)/2},62 ${canisterBackX},60`);
+})();
+</script>
+
+</body>
+</html>

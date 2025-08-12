@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TideShift</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="title-body">
+  <button id="settingsBtn">⚙️</button>
+  <div class="settings-popup" id="settingsPopup">
+    <h2>Settings</h2>
+    <input type="password" id="pinInput" placeholder="Enter PIN"/>
+    <button onclick="checkPin()">Submit</button>
+    <div id="settingsActions" style="display:none;">
+      <button onclick="resetLeaderboard()">Reset Leaderboard</button>
+      <button onclick="resetRegulations()">Reset Regulations</button>
+    </div>
+  </div>
+  <div class="title-screen">
+    <img src="logo.png" alt="TideShift Logo" class="logo" />
+    <h1 class="title">TideShift</h1>
+    <button onclick="window.location.href='design.html'" class="play-button">Play</button>
+    <div class="leaderboard-box">
+      <h2>Leaderboard</h2>
+      <ul id="leaderboard"></ul>
+    </div>
+  </div>
+  <script>
+    function updateLeaderboard() {
+      const lb = JSON.parse(localStorage.getItem("tideshift_leaderboard") || "[]");
+      const list = document.getElementById("leaderboard");
+      list.innerHTML = "";
+      lb.slice(0, 5).forEach(entry => {
+        const li = document.createElement("li");
+        li.textContent = `${entry.id} — ${entry.score}`;
+        list.appendChild(li);
+      });
+    }
+    function resetLeaderboard() {
+      localStorage.removeItem("tideshift_leaderboard");
+      updateLeaderboard();
+    }
+    function resetRegulations() {
+      localStorage.removeItem("tideshift_regulations");
+      alert("Regulations will reset on next game");
+    }
+    function checkPin() {
+      const pin = document.getElementById("pinInput").value;
+      if (pin === "1234") {
+        document.getElementById("settingsActions").style.display = "block";
+      } else {
+        alert("Incorrect PIN");
+      }
+    }
+    document.getElementById("settingsBtn").onclick = function () {
+      document.getElementById("settingsPopup").style.display = "block";
+    };
+    updateLeaderboard();
+  </script>
+</body>
+</html>

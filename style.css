@@ -1,0 +1,68 @@
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+}
+.title-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(#b2ebf2, #e0f7fa);
+}
+.logo {
+  width: 150px;
+}
+.title {
+  font-size: 3em;
+}
+.play-button {
+  font-size: 1.2em;
+  padding: 10px 20px;
+  margin: 10px;
+  border-radius: 10px;
+  border: none;
+  background-color: #00838f;
+  color: white;
+  cursor: pointer;
+}
+.leaderboard-box {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #ffffffdd;
+  border-radius: 15px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+#leaderboard li {
+  list-style: none;
+  padding: 5px 0;
+}
+#settingsBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+.popup, .settings-popup {
+  display: none;
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  background: #f7f7f7;
+  padding: 20px;
+  border: 2px solid #00796b;
+  border-radius: 10px;
+  width: 80%;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+.settings-popup input {
+  font-size: 1em;
+  margin-top: 10px;
+}
+.settings-popup button {
+  margin-top: 10px;
+}
